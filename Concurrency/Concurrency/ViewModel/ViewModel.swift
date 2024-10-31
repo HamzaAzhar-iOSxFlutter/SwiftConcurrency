@@ -6,27 +6,37 @@
 //
 
 import Foundation
+import Combine
 
 protocol UserFetching {
     func usersFetched()
+    func failedToGetResponse(error: String)
 }
 
 class ViewModel {
     
-    let repository: AsyncAwaitRepository
+    private var cancellables: Set<AnyCancellable> = []
+    @Published private(set) var userModelPublished: [UserModel] = []
+    private let repository: CombineRepository
     var delegate: UserFetching?
-    var userModel: [UserModel] = []
     
-    init(repository: AsyncAwaitRepository) {
+    init(repository: CombineRepository) {
         self.repository = repository
     }
     
-    func fetchUsers() async {
-        do {
-            self.userModel = try await self.repository.fetchUsers()
-            self.delegate?.usersFetched()
-        } catch {
-            print(error)
-        }
+    func fetchUsers() {
+        self.repository.fetchUsers()
+            .sink { [weak self] completion in
+                switch completion {
+                case .finished:
+                    print("success!!")
+                case .failure(let error):
+                    self?.delegate?.failedToGetResponse(error: error.localizedDescription)
+                }
+            } receiveValue: { response in
+                self.userModelPublished = response
+                self.delegate?.usersFetched()
+            }.store(in: &cancellables)
+
     }
 }

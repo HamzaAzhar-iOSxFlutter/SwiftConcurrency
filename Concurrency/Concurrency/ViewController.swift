@@ -21,16 +21,14 @@ class ViewController: UIViewController {
     private func initialSetup() {
         self.tableView.delegate = self
         self.tableView.dataSource = self
-        let httpClient = AsyncAwaitHttpClient()
-        let repository = AsyncAwaitRepository(asyncHttpRequesting: httpClient)
+        let httpClient = CombineHttpClient()
+        let repository = CombineRepository(combineHttpRequesting: httpClient)
         self.viewModel = ViewModel(repository: repository)
         self.viewModel?.delegate = self
     }
     
     func fetchUserData() {
-        Task {
-            await self.viewModel?.fetchUsers()
-        }
+        self.viewModel?.fetchUsers()
     }
 }
 
@@ -40,12 +38,12 @@ extension ViewController: UITableViewDelegate {
 
 extension ViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return self.viewModel?.userModel.count ?? 0
+        return self.viewModel?.userModelPublished.count ?? 0
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        cell.textLabel?.text = self.viewModel?.userModel[indexPath.row].name
+        cell.textLabel?.text = self.viewModel?.userModelPublished[indexPath.row].name
         return cell
     }
     
@@ -53,6 +51,10 @@ extension ViewController: UITableViewDataSource {
 }
 
 extension ViewController: UserFetching {
+    func failedToGetResponse(error: String) {
+        print(error)
+    }
+    
     func usersFetched() {
         DispatchQueue.main.async { [weak self] in
             guard let strongSelf = self else { return }

@@ -7,6 +7,11 @@
 
 import Foundation
 
+enum TypeOfRequest: String {
+    case get = "get"
+    case post = "post"
+}
+
 struct AppConstants {
     static let userURL = "https://jsonplaceholder.typicode.com/users"
 }
